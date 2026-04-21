@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Maps Scraper — Outscraper Style</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#F0F6FC;min-height:100vh;display:flex;flex-direction:column}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:#161B22}
+  ::-webkit-scrollbar-thumb{background:#30363D;border-radius:3px}
+
+  /* NAV */
+  nav{background:#161B22;border-bottom:1px solid #30363D;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .nav-logo{color:#00C853;font-size:22px;font-weight:700;letter-spacing:-0.5px}
+  .nav-sub{color:#8B949E;font-size:13px;margin-left:4px}
+  .nav-badge{margin-left:auto;background:#00C85320;color:#00C853;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid #00C85340}
+
+  /* LAYOUT */
+  .main{display:flex;flex:1;overflow:hidden}
+
+  /* SIDEBAR */
+  aside{width:300px;flex-shrink:0;background:#161B22;border-right:1px solid #30363D;overflow-y:auto;padding:0 0 24px}
+  .section-title{font-size:10px;font-weight:700;letter-spacing:1px;color:#484F58;padding:20px 20px 6px;text-transform:uppercase}
+  .field{padding:4px 20px 10px}
+  label{display:block;font-size:12px;color:#8B949E;margin-bottom:5px}
+  select,input[type=text],input[type=number]{width:100%;background:#21262D;border:1px solid #30363D;color:#F0F6FC;border-radius:6px;padding:8px 10px;font-size:13px;outline:none;font-family:inherit;transition:border-color .15s}
+  select:focus,input:focus{border-color:#00C853}
+  select option{background:#21262D}
+
+  /* SLIDER */
+  .slider-row{display:flex;align-items:center;gap:10px}
+  input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:#30363D;border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#00C853;border-radius:50%;cursor:pointer}
+  .slider-val{color:#00C853;font-size:12px;font-weight:600;min-width:40px;text-align:right}
+
+  /* CHECKBOX */
+  .check-row{display:flex;align-items:center;gap:8px;padding:4px 20px}
+  .check-row input[type=checkbox]{width:15px;height:15px;accent-color:#00C853;cursor:pointer}
+  .check-row label{font-size:12px;color:#8B949E;margin:0;cursor:pointer}
+
+  /* BUTTONS */
+  .btn-run{display:block;margin:16px 20px 6px;padding:11px;background:#00C853;color:#000;font-weight:700;font-size:14px;border:none;border-radius:8px;cursor:pointer;transition:background .15s;width:calc(100% - 40px);text-align:center}
+  .btn-run:hover{background:#00A844}
+  .btn-run:disabled{background:#21262D;color:#484F58;cursor:not-allowed}
+  .btn-stop{display:block;margin:0 20px;padding:9px;background:#21262D;color:#F85149;font-size:13px;border:1px solid #30363D;border-radius:8px;cursor:pointer;width:calc(100% - 40px);text-align:center;transition:background .15s}
+  .btn-stop:hover{background:#2D1C1C}
+  .btn-stop:disabled{opacity:0.4;cursor:not-allowed}
+
+  /* RIGHT PANEL */
+  .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+  /* STATS BAR */
+  .stats-bar{background:#161B22;border-bottom:1px solid #30363D;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+  .stat-card{background:#0D1117;border:1px solid #30363D;border-radius:8px;padding:8px 18px;text-align:center;min-width:90px}
+  .stat-num{font-size:22px;font-weight:700;color:#00C853}
+  .stat-lbl{font-size:10px;color:#8B949E;margin-top:1px}
+  .bar-actions{margin-left:auto;display:flex;gap:8px}
+  .btn-export{padding:8px 16px;background:#21262D;color:#00C853;border:1px solid #00C85350;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s}
+  .btn-export:hover{background:#1A2D1A}
+  .btn-clear{padding:8px 14px;background:#21262D;color:#8B949E;border:1px solid #30363D;border-radius:6px;font-size:12px;cursor:pointer;transition:background .15s}
+  .btn-clear:hover{background:#2D2D2D}
+
+  /* PROGRESS */
+  .progress-wrap{padding:8px 20px 4px;flex-shrink:0}
+  .progress-bar{height:3px;background:#21262D;border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;width:0%;background:#00C853;border-radius:2px;transition:width .3s}
+  .progress-fill.indeterminate{animation:indeterminate 1.4s ease infinite}
+  @keyframes indeterminate{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
+  .progress-text{font-size:11px;color:#8B949E;padding:4px 0 2px}
+
+  /* TABLE */
+  .table-wrap{flex:1;overflow:auto;padding:0 20px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead th{background:#161B22;color:#8B949E;font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid #30363D;position:sticky;top:0;z-index:1;white-space:nowrap}
+  tbody tr{border-bottom:1px solid #21262D;transition:background .1s}
+  tbody tr:hover{background:#161B22}
+  tbody td{padding:9px 12px;color:#F0F6FC;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge-email{background:#00C85320;color:#00C853;border-radius:4px;padding:2px 6px;font-size:10px}
+  .badge-na{color:#484F58;font-size:11px}
+  .rating{color:#D29922;font-size:11px}
+
+  /* LOG */
+  .log-wrap{flex-shrink:0;background:#0D1117;border-top:1px solid #30363D;padding:8px 20px}
+  .log-title{font-size:10px;font-weight:700;letter-spacing:1px;color:#484F58;margin-bottom:4px;text-transform:uppercase}
+  .log-box{height:72px;overflow-y:auto;font-size:11px;font-family:'Consolas','Courier New',monospace}
+  .log-line{padding:1px 0;line-height:1.5}
+  .log-green{color:#00C853}.log-red{color:#F85149}.log-yellow{color:#D29922}.log-gray{color:#8B949E}
+
+  /* EMPTY STATE */
+  .empty{text-align:center;padding:60px 20px;color:#484F58}
+  .empty-icon{font-size:40px;margin-bottom:12px}
+  .empty-text{font-size:14px}
+
+  /* SEARCH BOX */
+  .search-wrap{padding:8px 20px 0;flex-shrink:0}
+  .search-input{width:100%;background:#21262D;border:1px solid #30363D;color:#F0F6FC;border-radius:6px;padding:8px 12px;font-size:12px;outline:none;font-family:inherit}
+  .search-input:focus{border-color:#00C853}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">⬡ Outscraper</span>
+  <span class="nav-sub">Google Maps Business Scraper</span>
+  <span class="nav-badge">Worldwide</span>
+</nav>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="section-title">Search Query</div>
+    <div class="field">
+      <label>Industry preset</label>
+      <select id="industry">
+        {% for k in industries %}
+        <option value="{{k}}" {{'selected' if k=='gym' else ''}}>{{k}}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Custom query (overrides preset)</label>
+      <input type="text" id="custom_query" placeholder='e.g. "vape shop", "nail salon"'>
+    </div>
+
+    <div class="section-title">Location</div>
+    <div class="field">
+      <label>Region / Country</label>
+      <select id="region" onchange="loadCities()">
+        <option value="">-- Select region --</option>
+        <option value="All Regions">🌍 All Regions</option>
+        {% for r in regions %}
+        <option value="{{r}}" {{'selected' if r=='Philippines' else ''}}>{{r}}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Specific city (optional)</label>
+      <select id="city">
+        <option value="">All cities in region</option>
+        {% for c in cities_by_region.get('Philippines', []) %}
+        <option value="{{c}}">{{c}}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Custom city (any city worldwide)</label>
+      <input type="text" id="custom_city" placeholder='e.g. "Tokyo, Japan"'>
+    </div>
+
+    <div class="section-title">Limits</div>
+    <div class="field">
+      <label>Results per city</label>
+      <div class="slider-row">
+        <input type="range" id="limit" min="5" max="100" value="20" oninput="document.getElementById('limit_val').textContent=this.value">
+        <span class="slider-val" id="limit_val">20</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Max total results</label>
+      <div class="slider-row">
+        <input type="range" id="max_total" min="50" max="5000" step="50" value="500" oninput="document.getElementById('max_val').textContent=this.value">
+        <span class="slider-val" id="max_val">500</span>
+      </div>
+    </div>
+
+    <div class="section-title">Options</div>
+    <div class="check-row"><input type="checkbox" id="fetch_emails" checked><label for="fetch_emails">Fetch emails from websites</label></div>
+    <div class="check-row"><input type="checkbox" id="dedup" checked><label for="dedup">Remove duplicates</label></div>
+
+    <button class="btn-run" id="btn_run" onclick="startScrape()">▶&nbsp; Start Scraping</button>
+    <button class="btn-stop" id="btn_stop" disabled onclick="stopScrape()">⏹&nbsp; Stop</button>
+  </aside>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-num" id="s_total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card"><div class="stat-num" id="s_phone">0</div><div class="stat-lbl">With Phone</div></div>
+      <div class="stat-card"><div class="stat-num" id="s_email">0</div><div class="stat-lbl">With Email</div></div>
+      <div class="stat-card"><div class="stat-num" id="s_city">0</div><div class="stat-lbl">Cities Done</div></div>
+      <div class="bar-actions">
+        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn-clear" onclick="clearResults()">✕ Clear</button>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="prog_fill"></div></div>
+      <div class="progress-text" id="prog_text"></div>
+    </div>
+
+    <div class="search-wrap">
+      <input class="search-input" id="search_filter" placeholder="Filter results by name, phone, email, address..." oninput="filterTable()">
+    </div>
+
+    <div class="table-wrap" id="table_wrap">
+      <div class="empty" id="empty_state">
+        <div class="empty-icon">🗺️</div>
+        <div class="empty-text">Configure your search and click Start Scraping</div>
+      </div>
+      <table id="results_table" style="display:none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Business Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Address</th>
+            <th>Website</th>
+            <th>Rating</th>
+            <th>Country</th>
+          </tr>
+        </thead>
+        <tbody id="results_body"></tbody>
+      </table>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-title">Log</div>
+      <div class="log-box" id="log_box"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allResults = [];
+let stopRequested = false;
+
+function loadCities() {
+  const region = document.getElementById('region').value;
+  const citySelect = document.getElementById('city');
+  citySelect.innerHTML = '<option value="">All cities in region</option>';
+  if (!region || region === 'All Regions') return;
+  fetch('/get_cities?region=' + encodeURIComponent(region))
+    .then(r => r.json())
+    .then(cities => {
+      cities.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        citySelect.appendChild(opt);
+      });
+    });
+}
+
+function log(msg, type='gray') {
+  const box = document.getElementById('log_box');
+  const ts = new Date().toLocaleTimeString();
+  const line = document.createElement('div');
+  line.className = 'log-line log-' + type;
+  line.textContent = `[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function updateStats() {
+  document.getElementById('s_total').textContent = allResults.length;
+  document.getElementById('s_phone').textContent = allResults.filter(r=>r.phone).length;
+  document.getElementById('s_email').textContent = allResults.filter(r=>r.email).length;
+}
+
+function addRow(b, idx) {
+  const tbody = document.getElementById('results_body');
+  const tr = document.createElement('tr');
+  const website = b.website ? `<a href="${b.website}" target="_blank" style="color:#00C853;text-decoration:none">${b.website.replace(/https?:\/\//,'').substring(0,25)}</a>` : '<span class="badge-na">N/A</span>';
+  const email = b.email ? `<span class="badge-email">${b.email}</span>` : '<span class="badge-na">N/A</span>';
+  const phone = b.phone || '<span class="badge-na">N/A</span>';
+  const rating = b.rating ? `<span class="rating">★ ${b.rating}</span>` : '';
+  tr.innerHTML = `
+    <td style="color:#484F58">${idx}</td>
+    <td title="${b.name}"><strong>${b.name||''}</strong></td>
+    <td>${phone}</td>
+    <td>${email}</td>
+    <td title="${b.address}">${(b.address||'').substring(0,35)}</td>
+    <td>${website}</td>
+    <td>${rating}</td>
+    <td style="color:#8B949E">${b.country||''}</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function filterTable() {
+  const q = document.getElementById('search_filter').value.toLowerCase();
+  const rows = document.querySelectorAll('#results_body tr');
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function clearResults() {
+  allResults = [];
+  document.getElementById('results_body').innerHTML = '';
+  document.getElementById('results_table').style.display = 'none';
+  document.getElementById('empty_state').style.display = 'block';
+  updateStats();
+  document.getElementById('s_city').textContent = '0';
+  log('Results cleared.', 'yellow');
+}
+
+function exportCSV() {
+  if (!allResults.length) { alert('No results to export.'); return; }
+  const fields = ['name','phone','email','address','website','rating','category','country','location_searched'];
+  let csv = fields.join(',') + '\n';
+  allResults.forEach(r => {
+    csv += fields.map(f => '"' + (r[f]||'').replace(/"/g,'""') + '"').join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scraper_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  log(`Exported ${allResults.length} rows to CSV.`, 'green');
+}
+
+function setProgress(running, text='') {
+  const fill = document.getElementById('prog_fill');
+  fill.className = 'progress-fill' + (running ? ' indeterminate' : '');
+  fill.style.width = running ? '' : '0%';
+  document.getElementById('prog_text').textContent = text;
+}
+
+function stopScrape() {
+  stopRequested = true;
+  log('Stop requested...', 'yellow');
+}
+
+async function startScrape() {
+  stopRequested = false;
+  const payload = {
+    industry:     document.getElementById('industry').value,
+    custom_query: document.getElementById('custom_query').value,
+    region:       document.getElementById('region').value,
+    city:         document.getElementById('city').value,
+    custom_city:  document.getElementById('custom_city').value,
+    limit:        document.getElementById('limit').value,
+    max_total:    document.getElementById('max_total').value,
+    fetch_emails: document.getElementById('fetch_emails').checked,
+  };
+
+  if (!payload.region && !payload.custom_city) {
+    alert('Please select a region or enter a custom city.');
+    return;
+  }
+
+  document.getElementById('btn_run').disabled = true;
+  document.getElementById('btn_stop').disabled = false;
+  setProgress(true, 'Scraping in progress...');
+
+  const label = payload.custom_query || payload.industry;
+  log(`Starting: "${label}" in ${payload.custom_city || payload.city || payload.region}`, 'green');
+
+  try {
+    const res = await fetch('/scrape', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      log('Error: ' + data.error, 'red');
+    } else {
+      const results = data.results || [];
+      document.getElementById('empty_state').style.display = 'none';
+      document.getElementById('results_table').style.display = 'table';
+
+      results.forEach((b, i) => {
+        if (!allResults.find(r => r.name === b.name && r.phone === b.phone)) {
+          allResults.push(b);
+          addRow(b, allResults.length);
+        }
+      });
+
+      updateStats();
+      document.getElementById('s_city').textContent = payload.city ? '1' : (CITIES_BY_REGION_COUNT[payload.region] || '?');
+      log(`Done! ${results.length} results found.`, 'green');
+
+      const emails = results.filter(r=>r.email).length;
+      log(`With phone: ${results.filter(r=>r.phone).length} | With email: ${emails}`, 'gray');
+    }
+  } catch(e) {
+    log('Request failed: ' + e.message, 'red');
+  }
+
+  document.getElementById('btn_run').disabled = false;
+  document.getElementById('btn_stop').disabled = true;
+  setProgress(false);
+}
+
+// Expose city counts for display
+const CITIES_BY_REGION_COUNT = {{ cities_by_region | tojson | safe }};
+</script>
+</body>
+</html>
